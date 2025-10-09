@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FILMBOX</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #111;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* Fondo detrás del póster con gradiente hacia negro */
+.detail-background {
+  width: 100%;
+  height: 250px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.detail-background::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(17,17,17,0) 60%, rgba(17,17,17,1) 100%);
+}
+
+/* Contenedor central compacto */
+.detail-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 280px;
+  margin-top: -120px;
+  z-index: 1;
+  gap: 10px;
+}
+
+/* Póster pequeño y centrado */
+.poster-container img {
+  width: 160px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.7);
+}
+
+/* Detalles debajo del póster */
+.details-container {
+  text-align: center;
+  width: 100%;
+  background-color: #111;
+  padding: 15px;
+  border-radius: 10px;
+  position: relative;
+}
+
+.details-container h1 {
+  font-size: 18px;
+  margin: 5px 0 5px;
+  color: #fff;
+}
+
+.details-container .info {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.details-container .info .item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.details-container .info svg {
+  width: 12px;
+  height: 12px;
+  fill: #fff;
+}
+
+/* Sinopsis */
+.details-container .sinopsis-wrapper {
+  max-height: 80px;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.details-container p {
+  font-size: 13px;
+  line-height: 1.3;
+  color: #fff;
+  margin: 0;
+}
+
+.details-container .ver-mas {
+  color: #e81c1c;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 4px;
+  display: none;
+}
+
+/* Botón de reproducción moderno (sin efectos ni hover) */
+.play-btn {
+  width: 70px;
+  height: 70px;
+  background: #e81c1c;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 30px;
+  z-index: 2;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+/* --- NUEVOS ESTILOS PARA EL REPRODUCTOR FULLSCREEN --- */
+#videoPlayerContainer {
+  /* Fija el contenedor sobre todo el contenido, listo para Fullscreen */
+  width: 100%;
+  height: 100vh; 
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  z-index: 10;
+  display: none; /* Inicia oculto */
+}
+
+#videoPlayerContainer iframe {
+  width: 100%;
+  height: 100%;
+}
+
+/* Oculta el botón de play mientras el video se reproduce en fullscreen */
+.playing .play-btn {
+  display: none !important;
+}
+
+</style>
+</head>
+<body>
+
+<div class="detail-background" id="detailBackground"></div>
+
+<div id="videoPlayerContainer">
+    </div>
+<div class="detail-container">
+  <div class="poster-container">
+    <img id="detailPoster" src="" alt="Póster">
+  </div>
+  <div class="details-container">
+    <h1 id="detailTitle"></h1>
+    <div class="info">
+      <div class="item">
+        <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V9h14z"></path></svg>
+        <span id="detailYear">2025</span>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 11h4v2h-6V7h2z"></path></svg>
+        <span id="detailDuration">120 min</span>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z "></path></svg>
+        <span id="detailRating">8.5</span>
+      </div>
+    </div>
+    <div class="sinopsis-wrapper" id="sinopsisWrapper">
+      <p id="detailSynopsis"></p>
+    </div>
+    <div class="ver-mas" id="verMasBtn">Ver más</div>
+  </div>
+</div>
+
+<a id="detailPlay" href="#" class="play-btn">▶</a>
+
+<script>
+function showMovieDetail(posterUrl, backgroundUrl, title, year, duration, rating, synopsis, videoUrl) {
+  document.getElementById('detailPoster').src = posterUrl;
+  document.getElementById('detailBackground').style.backgroundImage = `url('${backgroundUrl}')`;
+  document.getElementById('detailTitle').textContent = title;
+  document.getElementById('detailYear').textContent = year;
+  document.getElementById('detailDuration').textContent = duration;
+  document.getElementById('detailRating').textContent = rating;
+
+  const sinopsisElem = document.getElementById('detailSynopsis');
+  const wrapper = document.getElementById('sinopsisWrapper');
+  const verMasBtn = document.getElementById('verMasBtn');
+
+  sinopsisElem.textContent = synopsis;
+
+  setTimeout(() => {
+    if (sinopsisElem.scrollHeight > wrapper.clientHeight) {
+      verMasBtn.style.display = 'block';
+    } else {
+      verMasBtn.style.display = 'none';
+    }
+  }, 50);
+
+  verMasBtn.onclick = () => {
+    if (wrapper.style.maxHeight === '80px' || wrapper.style.maxHeight === '') {
+      wrapper.style.maxHeight = '200px';
+      wrapper.style.overflowY = 'auto';
+      verMasBtn.textContent = 'Ver menos';
+    } else {
+      wrapper.style.maxHeight = '80px';
+      wrapper.style.overflowY = 'hidden';
+      verMasBtn.textContent = 'Ver más';
+    }
+  }
+
+  // --- Lógica del Botón de Play con Inframe y Fullscreen (MODIFICADA) ---
+  const playBtn = document.getElementById('detailPlay');
+  const playerContainer = document.getElementById('videoPlayerContainer');
+
+  playBtn.onclick = function(e) {
+    e.preventDefault(); // Detiene el comportamiento de enlace predeterminado
+
+    // 1. Mostrar el contenedor del reproductor y ocultar el botón de Play
+    playerContainer.style.display = 'block';
+    document.body.classList.add('playing');
+    
+    // 2. Insertar el iframe del reproductor
+    playerContainer.innerHTML = `
+      <iframe
+        allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen'
+        allowfullscreen='true' 
+        frameborder='0' 
+        scrolling='no' 
+        src='${videoUrl}'
+        style='width: 100%; height: 100%;'
+      ></iframe>
+    `;
+
+    // 3. Intentar bloquear la orientación a horizontal (landscape)
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(function(error) {
+        console.log("No se pudo bloquear la orientación (ignorado):", error);
+      });
+    }
+
+    // 4. Activar el modo de pantalla completa en el contenedor
+    if (playerContainer.requestFullscreen) {
+      playerContainer.requestFullscreen();
+    } else if (playerContainer.mozRequestFullScreen) {
+      playerContainer.mozRequestFullScreen();
+    } else if (playerContainer.webkitRequestFullscreen) {
+      playerContainer.webkitRequestFullscreen();
+    } else if (playerContainer.msRequestFullscreen) {
+      playerContainer.msRequestFullscreen();
+    }
+  };
+
+  // 5. Función para manejar la salida de pantalla completa (al presionar ESC o el botón de salir)
+  document.addEventListener('fullscreenchange', exitHandler);
+  document.addEventListener('webkitfullscreenchange', exitHandler);
+  document.addEventListener('mozfullscreenchange', exitHandler);
+  document.addEventListener('msfullscreenchange', exitHandler);
+
+  function exitHandler() {
+    // Si la página NO está en modo fullscreen
+    if (!document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
+      // Ocultar el reproductor y limpiar el contenido
+      playerContainer.style.display = 'none';
+      playerContainer.innerHTML = '';
+      document.body.classList.remove('playing');
+      
+      // Intentar desbloquear la orientación para regresar a vertical
+      if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+      }
+    }
+  }
+}
+
+// Ejemplo de uso (Nota: Usamos el link genérico que indicaste para la prueba)
+showMovieDetail(
+  'https://image.tmdb.org/t/p/original/yCRxUvswHsSRuMYnW3DbipVNXIz.jpg',
+  'https://image.tmdb.org/t/p/original/sAlFxrqBxLHrj6EmjAAz4T50FJz.jpg',
+  'EL MURO NEGRO ',
+  '2025',
+  '1 h 39 min',
+  '7.4',
+  'Cuando un misterioso muro de ladrillos rodea su edificio de apartamentos durante la noche, Tim y Olivia deben unirse a sus cautelosos vecinos para salir con vida.',
+  // URL del reproductor de prueba (debe ser la que carga el iframe)
+  'https://pruebasfilmbox.blogspot.com/?player=fluidplayer&provider=rand&format=video/mp4&link=https://hugh.cdn.rumble.cloud/video/fww1/fe/s8/2/s/O/i/6/sOi6y.aaa.mp4&m=1'
+);
+</script>
+
+</body>
+</html>
